@@ -4,7 +4,7 @@ from telethon.tl.types import InputMessagesFilterPhotos, InputMessagesFilterVide
 
 api_id = 9307366
 api_hash = '1ce7a3a4670658d10a01b7e6b090fc07'
-source_channels = ['+Jy6JUPHajxoyMjg8']  # Source channels to collect media from
+source_channels = ['unofficialmagi']  # Source channels to collect media from
 destination_channels = ['gsjjsbsbsb']  # Destination channels to forward media to
 pic_down = './pic'
 gif_down = './gif'
