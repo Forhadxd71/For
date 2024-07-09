@@ -4,6 +4,7 @@ from aiogram.types import InputMediaPhoto, InputMediaVideo
 from aiogram.utils import executor
 from telethon import TelegramClient, events
 from telethon.sessions import StringSession
+import asyncio
 
 # Load configuration
 with open('config.json') as config_file:
@@ -39,7 +40,7 @@ async def handle_new_media(message: types.Message):
     if chat_id in collected_channels:
         await forward_media(message, forwarded_channels)
 
-async def main():
+async def startup(dispatcher):
     # Start the Telethon client
     await client.start()
 
@@ -47,11 +48,20 @@ async def main():
     for channel in collected_channels:
         async for message in client.iter_messages(channel, limit=100):
             if message.photo or message.video:
-                await forward_media(message, forwarded_channels)
+                # Wrap the telethon message in an aiogram Message
+                wrapped_message = types.Message(
+                    message.id, 
+                    from_user=message.from_id, 
+                    date=message.date, 
+                    chat=types.Chat(id=message.chat_id), 
+                    content_type='photo' if message.photo else 'video', 
+                    bot=dispatcher.bot
+                )
+                await forward_media(wrapped_message, forwarded_channels)
 
     # Start polling
     executor.start_polling(dp, skip_updates=True)
 
 if __name__ == '__main__':
-    from aiogram import executor
-    executor.start(dp, on_startup=main)
+    loop = asyncio.get_event_loop()
+    loop.run_until_complete(startup(dp))
