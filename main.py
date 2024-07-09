@@ -1,6 +1,8 @@
 import io
 import os
+import time
 from telethon import TelegramClient, sync
+from telethon.errors import FloodWaitError
 from telethon.tl.types import InputMessagesFilterPhotos, InputMessagesFilterVideo, InputMessagesFilterGif
 
 api_id = 24232038
@@ -30,7 +32,12 @@ def download(client, file, filename):
 
 def upload_message(client, file_path, destinations, caption=""):
     for destination in destinations:
-        client.send_file(destination, file_path, caption=caption)
+        try:
+            client.send_file(destination, file_path, caption=caption)
+        except FloodWaitError as e:
+            print(f"FloodWaitError: Waiting for {e.seconds} seconds.")
+            time.sleep(e.seconds)
+            client.send_file(destination, file_path, caption=caption)
 
 def delete_file(file_path):
     if os.path.exists(file_path):
