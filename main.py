@@ -48,15 +48,17 @@ async def startup(dispatcher):
     for channel in collected_channels:
         async for message in client.iter_messages(channel, limit=100):
             if message.photo or message.video:
-                # Wrap the telethon message in an aiogram Message
+                # Create a mock aiogram Message object
                 wrapped_message = types.Message(
-                    message.id, 
-                    from_user=message.from_id, 
-                    date=message.date, 
-                    chat=types.Chat(id=message.chat_id), 
-                    content_type='photo' if message.photo else 'video', 
-                    bot=dispatcher.bot
+                    message.id,
+                    from_user=types.User(id=message.from_id.user_id),
+                    date=message.date.timestamp(),
+                    chat=types.Chat(id=message.chat_id),
+                    content_type='photo' if message.photo else 'video',
+                    bot=dispatcher.bot,
                 )
+                wrapped_message.photo = message.photo
+                wrapped_message.video = message.video
                 await forward_media(wrapped_message, forwarded_channels)
 
     # Start polling
