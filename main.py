@@ -1,77 +1,87 @@
-import json
-import asyncio
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import InputMediaPhoto, InputMediaVideo
-from aiogram.utils import executor
-from telethon import TelegramClient
-from telethon.sessions import StringSession
+import io
+from telethon import TelegramClient, sync
+from telethon.tl.types import InputMessagesFilterPhotos, InputMessagesFilterVideo, InputMessagesFilterGif
 
-# Load configuration
-with open('config.json') as config_file:
-    config = json.load(config_file)
+api_id = 9307366
+api_hash = '1ce7a3a4670658d10a01b7e6b090fc07'
+source_channels = ['unofficialmagi']  # Source channels to collect media from
+destination_channel = ['gsjjsbsbsb']  # Destination channel to forward media to
+pic_down = './pic'
+gif_down = './gif'
+video_down = './video'
+history_file = './history.txt'
 
-api_id = config['api_id']
-api_hash = config['api_hash']
-bot_token = config['bot_token']
-collected_channels = config['collected_channels']
-forwarded_channels = config['forwarded_channels']
-string_session = config['string_session']
-
-# Initialize the aiogram bot
-bot = Bot(token=bot_token)
-dp = Dispatcher(bot)
-
-# Initialize the Telethon client
-if string_session:
-    client = TelegramClient(StringSession(string_session), api_id, api_hash)
-else:
-    client = TelegramClient(StringSession(), api_id, api_hash)
-
-async def forward_media(message: types.Message, forwarded_channels):
-    media = []
-    if message.photo:
-        # Fetch the actual photo data
-        photo_data = await message.photo[-1].download()
-        media = [InputMediaPhoto(media=photo_data)]
-    elif message.video:
-        # Fetch the actual video data
-        video_data = await message.video.download()
-        media = [InputMediaVideo(media=video_data)]
+def IsChongFu(content, file):
+    xinxi = io.open(file, 'r', encoding='utf-8-sig')
+    xinxi_list = xinxi.readlines()
+    if content + '\n' in xinxi_list:
+        print(content + ' is already done!')
+        return True
     else:
-        return
+        saveMessage(content, file)
+        return False
 
-    for channel in forwarded_channels:
-        await bot.send_media_group(chat_id=channel, media=media)
+def saveMessage(content, file):
+    with open(file, 'a+', encoding='utf-8-sig') as fp:
+        fp.write(content + "\n")
 
-@dp.message_handler(content_types=[types.ContentType.PHOTO, types.ContentType.VIDEO])
-async def handle_new_media(message: types.Message):
-    chat_id = message.chat.id
-    if str(chat_id) in collected_channels:
-        await forward_media(message, forwarded_channels)
+def download(client, file, filename):
+    client.download_media(file, filename)
 
-async def startup(dispatcher):
-    # Start the Telethon client
-    await client.start()
+def forward_message(client, message, destination):
+    client.forward_messages(destination, message)
 
-    if not string_session:
-        # Save the session string to the config file
-        session_string = client.session.save()
-        config['string_session'] = session_string
-        with open('config.json', 'w') as config_file:
-            json.dump(config, config_file, indent=4)
-        print("Session saved. You can now restart the script.")
+def getPhotoList(client, channel):
+    channel_link = 'https://t.me/' + channel
+    photos = client.get_messages(channel_link, None, filter=InputMessagesFilterPhotos)
+    total = len(photos)
+    index = 0
+    for photo in photos:
+        filename = pic_down + "/" + channel + "/" + str(photo.id) + ".jpg"
+        index += 1
+        if IsChongFu(filename, history_file):
+            continue
+        print("downloading: ", index, "/", total, " : ", filename)
+        download(client, photo, filename)
+        forward_message(client, photo, destination_channel)
+    print('photos are done..')
 
-    else:
-        # Fetch recent messages from collected channels and forward if they are media
-        for channel in collected_channels:
-            async for message in client.iter_messages(channel, limit=100):
-                if message.photo or message.video:
-                    # Forward the media using aiogram bot
-                    await forward_media(message, forwarded_channels)
+def getGifList(client, channel):
+    channel_link = 'https://t.me/' + channel
+    gifs = client.get_messages(channel_link, None, filter=InputMessagesFilterGif)
+    total = len(gifs)
+    index = 0
+    for gif in gifs:
+        filename = gif_down + "/" + channel + "/" + str(gif.id) + ".mp4"
+        index += 1
+        if IsChongFu(filename, history_file):
+            continue
+        print("downloading: ", index, "/", total, " : ", filename)
+        download(client, gif, filename)
+        forward_message(client, gif, destination_channel)
+    print('gifs are done..')
 
-        # Start polling
-        executor.start_polling(dp, skip_updates=True)
+def getVideoList(client, channel):
+    channel_link = 'https://t.me/' + channel
+    videos = client.get_messages(channel_link, None, filter=InputMessagesFilterVideo)
+    total = len(videos)
+    index = 0
+    for video in videos:
+        filename = video_down + "/" + channel + "/" + str(video.id) + ".mp4"
+        index += 1
+        if IsChongFu(filename, history_file):
+            continue
+        print("downloading: ", index, "/", total, " : ", filename)
+        download(client, video, filename)
+        forward_message(client, video, destination_channel)
+    print('videos are done..')
 
-if __name__ == '__main__':
-    loop = asyncio.get_event_loop()
-    loop.run_until_complete(startup(dp))
+if __name__ == "__main__":
+    client = TelegramClient('my_session', api_id=api_id, api_hash=api_hash).start()
+    for channel in source_channels:
+        print(channel + ' is starting...')
+        getPhotoList(client, channel)
+        getGifList(client, channel)
+        getVideoList(client, channel)
+    client.disconnect()
+    print('ALL done !!')
