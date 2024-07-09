@@ -4,8 +4,8 @@ from telethon.tl.types import InputMessagesFilterPhotos, InputMessagesFilterVide
 
 api_id = 9307366
 api_hash = '1ce7a3a4670658d10a01b7e6b090fc07'
-source_channels = ['unofficialmagi']  # Source channels to collect media from
-destination_channel = ['gsjjsbsbsb']  # Destination channel to forward media to
+source_channels = ['+Jy6JUPHajxoyMjg8']  # Source channels to collect media from
+destination_channels = ['gsjjsbsbsb']  # Destination channels to forward media to
 pic_down = './pic'
 gif_down = './gif'
 video_down = './video'
@@ -28,8 +28,9 @@ def saveMessage(content, file):
 def download(client, file, filename):
     client.download_media(file, filename)
 
-def forward_message(client, message, destination):
-    client.forward_messages(destination, message)
+def forward_message(client, message, destinations):
+    for destination in destinations:
+        client.forward_messages(destination, message)
 
 def getPhotoList(client, channel):
     channel_link = 'https://t.me/' + channel
@@ -43,7 +44,7 @@ def getPhotoList(client, channel):
             continue
         print("downloading: ", index, "/", total, " : ", filename)
         download(client, photo, filename)
-        forward_message(client, photo, destination_channel)
+        forward_message(client, photo, destination_channels)
     print('photos are done..')
 
 def getGifList(client, channel):
@@ -58,7 +59,7 @@ def getGifList(client, channel):
             continue
         print("downloading: ", index, "/", total, " : ", filename)
         download(client, gif, filename)
-        forward_message(client, gif, destination_channel)
+        forward_message(client, gif, destination_channels)
     print('gifs are done..')
 
 def getVideoList(client, channel):
@@ -73,7 +74,7 @@ def getVideoList(client, channel):
             continue
         print("downloading: ", index, "/", total, " : ", filename)
         download(client, video, filename)
-        forward_message(client, video, destination_channel)
+        forward_message(client, video, destination_channels)
     print('videos are done..')
 
 if __name__ == "__main__":
