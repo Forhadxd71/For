@@ -5,7 +5,7 @@ from telethon.tl.types import InputMessagesFilterPhotos, InputMessagesFilterVide
 api_id = 24232038
 api_hash = '6b55079d2ba17ccc133881d67df066a9'
 source_channels = ['unofficialmagi', '+fDZo8WCjA-FhNDMy', 'RedZoneDrop', 'nudobazz', 'publicnudity11']  # Add more source channels here
-destination_channels = ['+viJtc8y1tm42N2E1']  # Destination channels to forward media to
+destination_channels = ['asdasdad54']  # Destination channels to forward media to
 pic_down = './pic'
 gif_down = './gif'
 video_down = './video'
