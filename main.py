@@ -1,10 +1,11 @@
 import io
+import os
 from telethon import TelegramClient, sync
 from telethon.tl.types import InputMessagesFilterPhotos, InputMessagesFilterVideo, InputMessagesFilterGif
 
 api_id = 24232038
 api_hash = '6b55079d2ba17ccc133881d67df066a9'
-source_channels = ['unofficialmagi', '+fDZo8WCjA-FhNDMy', 'RedZoneDrop', 'nudobazz', 'publicnudity11']  # Add more source channels here
+source_channels = ['+fDZo8WCjA-FhNDMy', 'RedZoneDrop', 'nudobazz', 'publicnudity11']  # Add more source channels here
 destination_channels = ['asdasdad54']  # Destination channels to forward media to
 pic_down = './pic'
 gif_down = './gif'
@@ -12,14 +13,13 @@ video_down = './video'
 history_file = './history.txt'
 
 def IsChongFu(content, file):
-    xinxi = io.open(file, 'r', encoding='utf-8-sig')
-    xinxi_list = xinxi.readlines()
-    if content + '\n' in xinxi_list:
-        print(content + ' is already done!')
-        return True
-    else:
-        saveMessage(content, file)
-        return False
+    if os.path.exists(file):
+        xinxi = io.open(file, 'r', encoding='utf-8-sig')
+        xinxi_list = xinxi.readlines()
+        if content + '\n' in xinxi_list:
+            print(content + ' is already done!')
+            return True
+    return False
 
 def saveMessage(content, file):
     with open(file, 'a+', encoding='utf-8-sig') as fp:
@@ -28,9 +28,16 @@ def saveMessage(content, file):
 def download(client, file, filename):
     client.download_media(file, filename)
 
-def forward_message(client, message, destinations):
+def upload_message(client, file_path, destinations, caption=""):
     for destination in destinations:
-        client.forward_messages(destination, message)
+        client.send_file(destination, file_path, caption=caption)
+
+def delete_file(file_path):
+    if os.path.exists(file_path):
+        os.remove(file_path)
+        print(f"Deleted file: {file_path}")
+    else:
+        print(f"File not found: {file_path}")
 
 def getMediaList(client, channel, filter_type, download_path, file_extension):
     channel_link = 'https://t.me/' + channel
@@ -44,7 +51,9 @@ def getMediaList(client, channel, filter_type, download_path, file_extension):
             continue
         print(f"downloading: {index}/{total} : {filename}")
         download(client, message, filename)
-        forward_message(client, message, destination_channels)
+        saveMessage(filename, history_file)
+        upload_message(client, filename, destination_channels, caption=message.message)
+        delete_file(filename)
     print(f'{filter_type.__name__.split("InputMessagesFilter")[1].lower()}s are done..')
 
 def process_channel(client, channel):
