@@ -3,5 +3,6 @@
     "api_hash": "1ce7a3a4670658d10a01b7e6b090fc07",
     "bot_token": "6255214419:AAHuS9MATz6rdHbiPpj6J3Ew9ckUss1MPOc",
     "collected_channels": ["unofficialmagi"],
-    "forwarded_channels": ["gsjjsbsbsb"]
+    "forwarded_channels": ["gsjjsbsbsb"],
+    "string_session": ""
 }
