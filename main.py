@@ -1,10 +1,10 @@
 import json
+import asyncio
 from aiogram import Bot, Dispatcher, types
 from aiogram.types import InputMediaPhoto, InputMediaVideo
 from aiogram.utils import executor
-from telethon import TelegramClient, events
+from telethon import TelegramClient
 from telethon.sessions import StringSession
-import asyncio
 
 # Load configuration
 with open('config.json') as config_file:
@@ -15,18 +15,22 @@ api_hash = config['api_hash']
 bot_token = config['bot_token']
 collected_channels = config['collected_channels']
 forwarded_channels = config['forwarded_channels']
+string_session = config['string_session']
 
 # Initialize the aiogram bot
 bot = Bot(token=bot_token)
 dp = Dispatcher(bot)
 
 # Initialize the Telethon client
-client = TelegramClient(StringSession(), api_id, api_hash)
+if string_session:
+    client = TelegramClient(StringSession(string_session), api_id, api_hash)
+else:
+    client = TelegramClient(StringSession(), api_id, api_hash)
 
 async def forward_media(message: types.Message, forwarded_channels):
     media = []
     if message.photo:
-        media = [InputMediaPhoto(media=photo.file_id) for photo in message.photo]
+        media = [InputMediaPhoto(media=message.photo[-1].file_id)]
     elif message.video:
         media = [InputMediaVideo(media=message.video.file_id)]
     else:
@@ -45,28 +49,46 @@ async def startup(dispatcher):
     # Start the Telethon client
     await client.start()
 
-    # Fetch recent messages from collected channels and forward if they are media
-    for channel in collected_channels:
-        async for message in client.iter_messages(channel, limit=100):
-            if message.photo or message.video:
-                # Create a mock aiogram Message object
-                wrapped_message = types.Message(
-                    message_id=message.id,
-                    from_user=types.User(id=message.sender_id),
-                    date=message.date.timestamp(),
-                    chat=types.Chat(id=message.chat_id),
-                    content_type='photo' if message.photo else 'video',
-                    bot=dispatcher.bot
-                )
-                if message.photo:
-                    wrapped_message.photo = [types.PhotoSize(file_id=photo.id) for photo in message.photo]
-                if message.video:
-                    wrapped_message.video = types.Video(file_id=message.video.id)
-                
-                await forward_media(wrapped_message, forwarded_channels)
+    if not string_session:
+        # Save the session string to the config file
+        session_string = client.session.save()
+        config['string_session'] = session_string
+        with open('config.json', 'w') as config_file:
+            json.dump(config, config_file, indent=4)
+        print("Session saved. You can now restart the script.")
 
-    # Start polling
-    executor.start_polling(dp, skip_updates=True)
+    else:
+        # Fetch recent messages from collected channels and forward if they are media
+        for channel in collected_channels:
+            async for message in client.iter_messages(channel, limit=100):
+                if message.photo or message.video:
+                    # Forward the media using aiogram bot
+                    if message.photo:
+                        photos = [types.PhotoSize(file_id=photo.id) for photo in message.photo.sizes]
+                        wrapped_message = types.Message(
+                            message_id=message.id,
+                            from_user=types.User(id=message.sender_id),
+                            date=message.date.timestamp(),
+                            chat=types.Chat(id=message.chat_id),
+                            content_type='photo',
+                            photo=photos,
+                            bot=dispatcher.bot
+                        )
+                    elif message.video:
+                        video = types.Video(file_id=message.video.id)
+                        wrapped_message = types.Message(
+                            message_id=message.id,
+                            from_user=types.User(id=message.sender_id),
+                            date=message.date.timestamp(),
+                            chat=types.Chat(id=message.chat_id),
+                            content_type='video',
+                            video=video,
+                            bot=dispatcher.bot
+                        )
+                    await forward_media(wrapped_message, forwarded_channels)
+
+        # Start polling
+        executor.start_polling(dp, skip_updates=True)
 
 if __name__ == '__main__':
     loop = asyncio.get_event_loop()
