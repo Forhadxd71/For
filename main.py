@@ -30,9 +30,13 @@ else:
 async def forward_media(message: types.Message, forwarded_channels):
     media = []
     if message.photo:
-        media = [InputMediaPhoto(media=message.photo[-1].file_id)]
+        # Fetch the actual photo data
+        photo_data = await message.photo[-1].download()
+        media = [InputMediaPhoto(media=photo_data)]
     elif message.video:
-        media = [InputMediaVideo(media=message.video.file_id)]
+        # Fetch the actual video data
+        video_data = await message.video.download()
+        media = [InputMediaVideo(media=video_data)]
     else:
         return
 
@@ -63,29 +67,7 @@ async def startup(dispatcher):
             async for message in client.iter_messages(channel, limit=100):
                 if message.photo or message.video:
                     # Forward the media using aiogram bot
-                    if message.photo:
-                        photos = [types.PhotoSize(file_id=photo.id) for photo in message.photo.sizes]
-                        wrapped_message = types.Message(
-                            message_id=message.id,
-                            from_user=types.User(id=message.sender_id),
-                            date=message.date.timestamp(),
-                            chat=types.Chat(id=message.chat_id),
-                            content_type='photo',
-                            photo=photos,
-                            bot=dispatcher.bot
-                        )
-                    elif message.video:
-                        video = types.Video(file_id=message.video.id)
-                        wrapped_message = types.Message(
-                            message_id=message.id,
-                            from_user=types.User(id=message.sender_id),
-                            date=message.date.timestamp(),
-                            chat=types.Chat(id=message.chat_id),
-                            content_type='video',
-                            video=video,
-                            bot=dispatcher.bot
-                        )
-                    await forward_media(wrapped_message, forwarded_channels)
+                    await forward_media(message, forwarded_channels)
 
         # Start polling
         executor.start_polling(dp, skip_updates=True)
